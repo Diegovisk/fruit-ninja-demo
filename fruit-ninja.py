@@ -31,7 +31,6 @@ fruit_list = {
     2: "peach",
     3: "basaha",
     4: "apple",
-    5: "bomb",
 }
 
 max_tail_size = 5
@@ -295,12 +294,22 @@ def collision_handler(knf, frt):
 
     return topFruit, botFruit
 
+def coin_flip():
+    return random.randint(0, 1)
 
 def game_loop():
 
     # INITIAL SETTING
     pygame.init()
+    font = pygame.font.Font("./font/go3v2.ttf", 100)
+    font_small = pygame.font.Font("./font/go3v2.ttf", 50)
+    clock = pygame.time.Clock()
+
+
     run = True
+    exploding = False
+    explosion_alpha = 0
+    respawn_start = 0
 
     win = pygame.display.set_mode(win_size)
 
@@ -309,43 +318,87 @@ def game_loop():
     fruits = []
 
     while True:
-        num_fruits = random.randint(0, 3)
-        for i in range(num_fruits + 1):
-            option = random.randint(0, len(fruit_list.items()) - 1)
-            fruits.append(fruit(fruit_list[option], win))
-
-        while fruits != [] and run:
+        if exploding:
             pygame.time.delay(fps)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    knf.enable_cutting()
+                    break
 
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    knf.disable_cutting()
+            # fade to white (explosion)
+            if explosion_alpha < 200:
+                    explosion_alpha += 5
 
-            win.blit(pygame.transform.scale(background, (xWin, yWin)), (0, 0))
-            knf.update()
-            for fr in fruits:
+            explosion = pygame.Surface([xWin, yWin], pygame.SRCALPHA, 32)
+            explosion = explosion.convert_alpha()
+            explosion.fill((255, 255, 255, explosion_alpha))
+            win.blit(explosion, (0, 0))
 
-                fr.update()
+            lost_text = font.render('Você perdeu!', True, (255, 0, 0))
+            win.blit(lost_text, (xWin / 2 - lost_text.get_width() / 2, yWin / 2 - lost_text.get_height() / 2))
 
-                if (
-                    pygame.sprite.collide_rect(knf, fr) == True
-                    and knf.sharp()
-                    and not fr.cut
-                ):
-                    top, bot = collision_handler(knf, fr)
-                    fruits.append(top)
-                    fruits.append(bot)
-                    fruits.remove(fr)
-                    knf.cut()
+            seconds = int((pygame.time.get_ticks() - respawn_start) / 1000)
+            if seconds > 5:
+                exploding = False
+                respawn_start = 0
+                explosion_alpha = 0
+                fruits = []
+                knf = knife(win)
+                continue
 
-                if fr.destroy == True:
-                    fruits.remove(fr)
+            try_again = font_small.render('Tente novamente em {} segundos'.format(5-seconds), True, (0, 0, 0))
+            win.blit(try_again, (xWin / 2 - try_again.get_width() / 2, yWin / 2 - try_again.get_height() / 2 + 100))
 
             pygame.display.flip()
+            
+        else:
+            num_fruits = random.randint(0, 3)
+            for _ in range(num_fruits + 1):
+                option = random.randint(0, len(fruit_list.items()) - 1)
+                fruits.append(fruit(fruit_list[option], win))
+            
+            if coin_flip():
+                for _ in range(random.randint(1, 2)):
+                    fruits.append(fruit("bomb", win))
+
+            while fruits != [] and run:
+                pygame.time.delay(fps)
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        run = False
+                    elif event.type == pygame.MOUSEBUTTONDOWN:
+                        knf.enable_cutting()
+
+                    elif event.type == pygame.MOUSEBUTTONUP:
+                        knf.disable_cutting()
+
+                win.blit(pygame.transform.scale(background, (xWin, yWin)), (0, 0))
+                knf.update()
+                
+                for fr in fruits:
+
+                    fr.update()
+
+                    if (
+                        pygame.sprite.collide_rect(knf, fr) == True
+                        and knf.sharp()
+                        and not fr.cut
+                    ):  
+                        if fr.name == "bomb":
+                            fruits = []
+                            exploding = True
+                            respawn_start = pygame.time.get_ticks()
+                            break
+                        top, bot = collision_handler(knf, fr)
+                        fruits.append(top)
+                        fruits.append(bot)
+                        fruits.remove(fr)
+                        knf.cut()
+
+                    if fr.destroy == True:
+                        fruits.remove(fr)
+
+                pygame.display.flip()
 
         if not run:
             break

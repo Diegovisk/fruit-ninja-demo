@@ -294,8 +294,10 @@ def collision_handler(knf, frt):
 
     return topFruit, botFruit
 
+
 def coin_flip():
     return random.randint(0, 1)
+
 
 def game_loop():
 
@@ -304,7 +306,6 @@ def game_loop():
     font = pygame.font.Font("./font/go3v2.ttf", 100)
     font_small = pygame.font.Font("./font/go3v2.ttf", 50)
     clock = pygame.time.Clock()
-
 
     run = True
     exploding = False
@@ -327,15 +328,21 @@ def game_loop():
 
             # fade to white (explosion)
             if explosion_alpha < 200:
-                    explosion_alpha += 5
+                explosion_alpha += 5
 
             explosion = pygame.Surface([xWin, yWin], pygame.SRCALPHA, 32)
             explosion = explosion.convert_alpha()
             explosion.fill((255, 255, 255, explosion_alpha))
             win.blit(explosion, (0, 0))
 
-            lost_text = font.render('Você perdeu!', True, (255, 0, 0))
-            win.blit(lost_text, (xWin / 2 - lost_text.get_width() / 2, yWin / 2 - lost_text.get_height() / 2))
+            lost_text = font.render("Você perdeu!", True, (255, 0, 0))
+            win.blit(
+                lost_text,
+                (
+                    xWin / 2 - lost_text.get_width() / 2,
+                    yWin / 2 - lost_text.get_height() / 2,
+                ),
+            )
 
             seconds = int((pygame.time.get_ticks() - respawn_start) / 1000)
             if seconds > 5:
@@ -346,17 +353,25 @@ def game_loop():
                 knf = knife(win)
                 continue
 
-            try_again = font_small.render('Tente novamente em {} segundos'.format(5-seconds), True, (0, 0, 0))
-            win.blit(try_again, (xWin / 2 - try_again.get_width() / 2, yWin / 2 - try_again.get_height() / 2 + 100))
+            try_again = font_small.render(
+                "Tente novamente em {} segundos".format(5 - seconds), True, (0, 0, 0)
+            )
+            win.blit(
+                try_again,
+                (
+                    xWin / 2 - try_again.get_width() / 2,
+                    yWin / 2 - try_again.get_height() / 2 + 100,
+                ),
+            )
 
             pygame.display.flip()
-            
+
         else:
             num_fruits = random.randint(0, 3)
             for _ in range(num_fruits + 1):
                 option = random.randint(0, len(fruit_list.items()) - 1)
                 fruits.append(fruit(fruit_list[option], win))
-            
+
             if coin_flip():
                 for _ in range(random.randint(1, 2)):
                     fruits.append(fruit("bomb", win))
@@ -374,7 +389,7 @@ def game_loop():
 
                 win.blit(pygame.transform.scale(background, (xWin, yWin)), (0, 0))
                 knf.update()
-                
+
                 for fr in fruits:
 
                     fr.update()
@@ -383,11 +398,11 @@ def game_loop():
                         pygame.sprite.collide_rect(knf, fr) == True
                         and knf.sharp()
                         and not fr.cut
-                    ):  
+                    ):
                         if fr.name == "bomb":
                             fruits = []
-                            exploding = True
-                            respawn_start = pygame.time.get_ticks()
+                            # exploding = True
+                            # respawn_start = pygame.time.get_ticks()
                             break
                         top, bot = collision_handler(knf, fr)
                         fruits.append(top)

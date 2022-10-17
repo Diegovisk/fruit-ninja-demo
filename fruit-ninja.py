@@ -1,5 +1,6 @@
 import pygame
 import cv2
+import numpy as np
 from game_states.try_again import try_again
 from models.Knife import Knife
 from utils.add_bombs import add_bombs
@@ -34,7 +35,7 @@ def game_loop():
     font_small = pygame.font.Font("./font/go3v2.ttf", 50)
 
     # GET VIDEO CAPTURE FROM WEBCAM
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, WINDOW_HEIGHT)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, WINDOW_WIDTH)
 
@@ -110,6 +111,7 @@ def game_loop():
                         (WINDOW_WIDTH, WINDOW_HEIGHT),
                         interpolation=cv2.INTER_LINEAR
                     )
+                    bg_with_hands = np.rot90(bg_with_hands)
                     bg_with_hands = pygame.surfarray.make_surface(
                         bg_with_hands
                     )

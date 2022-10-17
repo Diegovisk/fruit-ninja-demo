@@ -54,54 +54,60 @@ def game_loop():
     fruits = []
 
     # Main loop
-    while run:
-        # NEW ROUND
-        if not exploding:
-            # CREATE BOMBS AND FRUITS
-            throw_fruits(fruits, win)
-            add_bombs(fruits, win)
+    with mp_hands.Hands(
+        model_complexity=0,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+        max_num_hands=1
+    ) as hands:
+        while run:
+            # NEW ROUND
+            if not exploding:
+                # CREATE BOMBS AND FRUITS
+                throw_fruits(fruits, win)
+                add_bombs(fruits, win)
 
-            # ROUND START
-            while fruits != [] and run:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        run = False
+                # ROUND START
+                while fruits != [] and run:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            run = False
 
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        knf.enable_cutting()
+                        elif event.type == pygame.MOUSEBUTTONDOWN:
+                            knf.enable_cutting()
 
-                    elif event.type == pygame.MOUSEBUTTONUP:
-                        knf.disable_cutting()
+                        elif event.type == pygame.MOUSEBUTTONUP:
+                            knf.disable_cutting()
 
-                pygame.time.delay(FPS)
+                    pygame.time.delay(FPS)
 
-                # DISPLAY BACKGROUND IMAGE
-                win.blit(
-                    pygame.transform.scale(
-                        background, (WINDOW_WIDTH, WINDOW_HEIGHT)
-                    ),
-                    (0, 0),
-                )
+                    # DISPLAY BACKGROUND IMAGE
+                    win.blit(
+                        pygame.transform.scale(
+                            background, (WINDOW_WIDTH, WINDOW_HEIGHT)
+                        ),
+                        (0, 0),
+                    )
 
-                # UPDATE KNIFE POSITION
-                knf.update(pygame.mouse.get_pos())
+                    # UPDATE KNIFE POSITION
+                    knf.update(pygame.mouse.get_pos())
 
-                # CHECK FOR KNIFE COLLISIONS AND UPDATE FRUITS
-                state = fruits_behavior(knf, fruits)
-                if state == "explode":
-                    exploding = True
-                    break
+                    # CHECK FOR KNIFE COLLISIONS AND UPDATE FRUITS
+                    state = fruits_behavior(knf, fruits)
+                    if state == "explode":
+                        exploding = True
+                        break
 
-                pygame.display.flip()
-        # GAME OVER STATE
-        else:
-            try_again(win, font, font_small)
-            exploding = False
-            fruits = []
+                    pygame.display.flip()
+            # GAME OVER STATE
+            else:
+                try_again(win, font, font_small)
+                exploding = False
+                fruits = []
 
-        if not run:
-            pygame.quit()
-            break
+            if not run:
+                pygame.quit()
+                break
     cap.release()
 
 

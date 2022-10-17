@@ -1,50 +1,20 @@
-# fruit-ninja-demo
-## Fruit Ninja Demo 
+# Fruit Ninja With Mediapipe Hands
+This is a hands-on tutorial for Python Brasil 2022.
 
 ### Requirements
 
-- python(2.7 - 3.7), tested versions 
-- pygame 1.9.6
+- python 3.7
+  - `conda create -n fruit-ninja python=3.7` and activate it, OR
+  - Create it with PyEnv
+- `pip install pygame numpy mediapipe opencv-python`
 
 ### How to run
 
 ```python
   python fruit-ninja.py
  ```
- ### Directory Structure
- ```
-    > fruit-ninja
-        images/
-            apple-1.png     
-            apple-2.png 
-            apple.png 
-            background.png 
-            banana-1.png 
-            banana-2.png 
-            banana.png 
-            basaha-1.png 
-            basaha-2.png 
-            basaha.png 
-            boom.png 
-            flash.png
-            fn.png
-            icon.png
-            peach-1.png
-            peach-2.png
-            peach.png
-            watermelon.png
-            watermelon-1.png
-            watermelon-2.png
-    
-    > fruit-ninja.py
- ```
- 
- ### Disclaimer 
- 
- No copyright infringement intended. Images used in this project were taken from another repository, you may refer to it for propietary matters. https://github.com/ChineseDron/fruit-ninja
 
- This project does not intend to provide any means of monetary retribution. It is intended for educational
- purposes only. 
-    
-    
- 
+ ### References: 
+ - [Original repo](https://github.com/jose0796/fruit-ninja-demo)
+ - [Python MediaPipe: track finger regarding region of interest](https://techtutorialsx.com/2021/04/24/python-mediapipe-finger-roi/)
+ - [Mediapipe Hands](https://google.github.io/mediapipe/solutions/hands.html)

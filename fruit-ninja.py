@@ -15,6 +15,12 @@ from utils.configs import (
 from utils.fruits_behavior import fruits_behavior
 from utils.throw_fruits import throw_fruits
 
+# Import do Mediapipe
+import mediapipe as mp
+
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_hands = mp.solutions.hands
 
 pygame.display.set_icon(pygame.image.load(IMG_PATH + "icon.png"))
 pygame.display.set_caption("Fruit Ninja With Mediapipe Hands!")

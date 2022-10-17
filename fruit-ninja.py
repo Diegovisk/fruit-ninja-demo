@@ -15,6 +15,7 @@ from utils.configs import (
 )
 from utils.fruits_behavior import fruits_behavior
 from utils.throw_fruits import throw_fruits
+from utils.is_pointing_finger import is_pointing_gesture
 
 # Import do Mediapipe
 import mediapipe as mp
@@ -96,6 +97,7 @@ def game_loop():
                     # APLICANDO O MODELO NA IMAGEM
                     results = hands.process(frame)
 
+                    finger_coord = None
                     # Desenho das mãos encontradas
                     if results.multi_hand_landmarks != None:
                         for hand_landmarks in results.multi_hand_landmarks:
@@ -103,6 +105,13 @@ def game_loop():
                                 bg_with_hands,
                                 hand_landmarks,
                                 mp_hands.HAND_CONNECTIONS
+                            )
+                            finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                            finger_coord = mp_drawing._normalized_to_pixel_coordinates(
+                                finger_tip.x,
+                                finger_tip.y,
+                                WINDOW_WIDTH,
+                                WINDOW_HEIGHT
                             )
 
                     bg_with_hands = cv2.cvtColor(bg_with_hands, cv2.COLOR_BGR2RGB)
@@ -126,7 +135,7 @@ def game_loop():
                     )
 
                     # UPDATE KNIFE POSITION
-                    knf.update(pygame.mouse.get_pos())
+                    knf.update(finger_coord)
 
                     # CHECK FOR KNIFE COLLISIONS AND UPDATE FRUITS
                     state = fruits_behavior(knf, fruits)

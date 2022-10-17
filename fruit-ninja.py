@@ -34,7 +34,9 @@ def game_loop():
     font_small = pygame.font.Font("./font/go3v2.ttf", 50)
 
     # GET VIDEO CAPTURE FROM WEBCAM
-    
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, WINDOW_HEIGHT)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WINDOW_WIDTH)
 
     # GAME VARIABLES
     run = True

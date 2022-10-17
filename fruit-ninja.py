@@ -1,422 +1,161 @@
-#!/bin/python3
-#   Copyright(c) Jose Moran, jmoran071996@gmail.com
-###################################################################
-##
-##   Fruit Ninja Demo in PyGame
-##
-##   Description: This is a basic Fruit Ninja demo intended to
-##   provide a testing GUI for usb-serial communication with
-##   an analog accelerometer.
-##
-###################################################################
-
+import numpy as np
 import pygame
 import math
 import random
 import sys
+import cv2
+import mediapipe as mp
+from game_states.try_again import try_again
+from models.Fruit import Fruit
+from models.Knife import Knife
+from utils.add_bombs import add_bombs
+from utils.coin_flip import coin_flip
+from utils.collision_handler import collision_handler
+from utils.configs import BACKGROUND_PATH, FPS, FRUIT_LIST, IMG_PATH, WINDOW_HEIGHT, WINDOW_SIZE, WINDOW_WIDTH
+from utils.is_pointing_finger import is_pointing_gesture
+from utils.throw_fruits import throw_fruits
 
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
+mp_hands = mp.solutions.hands
 
-xWin = 1280
-yWin = 720
-img_path = "images/"
-fps = 16
-win_size = (xWin, yWin)
-
-pygame.display.set_icon(pygame.image.load(img_path + "icon.png"))
-pygame.display.set_caption("Fruit Ninja")
-
-fruit_list = {
-    0: "watermelon",
-    1: "banana",
-    2: "peach",
-    3: "basaha",
-    4: "apple",
-}
-
-max_tail_size = 5
-
-
-class knife:
-    def __init__(self, win):
-        self.pos = pygame.mouse.get_pos()
-        self.drag = True
-        self.win = win
-        self.tail_size = 0
-        self.tail = []
-        self.width = 7
-        self.height = 7
-        self.default_size = (7, 7)
-        self.angle = 0
-        self.enable_cut = False
-        self.image = pygame.Surface(self.default_size)
-        self.rect = self.image.get_rect()
-        self.rect.top = self.pos[1]
-        self.rect.bottom = self.pos[1] + self.height
-        self.rect.left = self.pos[0]
-        self.rect.right = self.pos[0] + self.width
-        self.flash = pygame.image.load(img_path + "flash.png")
-
-    def sharp(self):
-        return self.enable_cut
-
-    def enable_cutting(self):
-        self.enable_cut = True
-
-    def disable_cutting(self):
-        self.enable_cut = False
-
-    def draw(self):
-        size = 7
-        factor = 0.8
-        if self.drag:
-            for pos in reversed(self.tail):
-                pygame.draw.rect(
-                    self.win, (255, 255, 255), (pos[0], pos[1], size, size)
-                )
-                size = factor * size
-
-    def find_angle(self):
-        if len(self.tail) > 2:
-            try:
-                self.angle = math.atan(
-                    abs(
-                        (self.tail[-1][1] - self.tail[-2][1])
-                        / (self.tail[-1][0] - self.tail[-2][0])
-                    )
-                )
-            except:
-                self.angle = math.pi / 2
-
-            if (
-                self.tail[-1][1] < self.tail[-2][1]
-                and self.tail[-1][0] > self.tail[-2][0]
-            ):
-                self.angle = abs(self.angle)
-            elif (
-                self.tail[-1][1] < self.tail[-2][1]
-                and self.tail[-1][0] < self.tail[-2][1]
-            ):
-                self.angle = math.pi - self.angle
-            elif (
-                self.tail[-1][1] > self.tail[-2][1]
-                and self.tail[-1][0] < self.tail[-2][0]
-            ):
-                self.angle = math.pi + abs(self.angle)
-            elif (
-                self.tail[-1][1] > self.tail[-2][1]
-                and self.tail[-1][0] > self.tail[-2][0]
-            ):
-                self.angle = (math.pi * 2) - self.angle
-            else:
-                self.angle = 0
-
-    def update_rect(self):
-        self.rect.top = self.pos[1]
-        self.rect.bottom = self.pos[1] + self.height
-        self.rect.left = self.pos[0]
-        self.rect.right = self.pos[0] + self.width
-
-    def update(self):
-        self.pos = pygame.mouse.get_pos()
-        self.update_rect()
-
-        if self.tail_size < max_tail_size:
-            self.tail.append(self.pos)
-            self.tail_size += 1
-        else:
-            self.tail.pop(0)  # pop firts element
-            self.tail.append(self.pos)
-
-        self.find_angle()
-        # print(self.angle*180/math.pi)
-        self.draw()
-
-    def cut(self):
-        rotatedFlash = pygame.transform.rotate(self.flash, self.angle * 180 / math.pi)
-        rotflash = rotatedFlash.get_rect()
-        rotflash.center = tuple(self.pos)
-        self.win.blit(rotatedFlash, rotflash)
-
-
-class fruit:
-    def __init__(self, name, win, cut=False):
-        self.name = name
-        # print(self.name)
-        self.image = pygame.image.load(img_path + name + ".png")
-        self.rect = self.image.get_rect()
-        self.width, self.height = self.image.get_size()
-
-        self.cut = cut
-        self.pos = [
-            random.randint(self.width, xWin - self.width),
-            yWin + (self.height + 1) // 2,
-        ]
-
-        self.update_rect()
-
-        self.win = win
-        self.destroy = False
-
-        # physics configuration ---------------------------
-        self.time = 0
-        self.time_step = random.uniform(0.15, 0.2)
-        self.spos = [self.pos[0], self.pos[1]]
-
-        if self.pos[0] > (xWin // 2):
-            self.s_angle = random.uniform(math.pi / 2, math.pi / 2 + math.pi / 18)
-        else:
-            self.s_angle = random.uniform(4 * math.pi / 9, math.pi / 2)
-
-        self.speed = random.randint(int(0.14 * yWin), int(0.16 * yWin))
-        self.svelx = self.speed * math.cos(self.s_angle)
-        self.svely = -self.speed * math.sin(self.s_angle)
-
-        self.time_limit = (
-            -self.svely + math.sqrt(self.svely**2 + 16 * self.spos[1])
-        ) / 8
-        self.angle = 0
-        if self.svelx > 0:
-            self.angle_speed = -5
-        else:
-            self.angle_speed = 5
-
-    def stop(self, angle=0):
-        self.spos = [self.pos[0], self.pos[1]]
-        self.time = 0
-        self.s_angle = angle
-        self.angle_speed = 1
-
-        # --------------------------------------------------
-
-    def change_image(self, name):
-        self.image = pygame.image.load(img_path + name + ".png")
-
-    def change_xspeed(self, speed):
-        self.svelx = speed
-
-    def change_yspeed(self, speed):
-        self.svely = speed
-
-    def change_rot_speed(self, speed):
-        self.angle_speed = speed
-
-    def rotate(self, angle):
-        self.angle = angle
-
-    def update_rect(self):
-        self.rect.top = self.pos[1]
-        self.rect.bottom = self.pos[1] + self.height
-        self.rect.left = self.pos[0]
-        self.rect.right = self.pos[0] + self.width
-
-    def draw(self):
-        rotatedSurf = pygame.transform.rotate(self.image, self.angle)
-        rotFruit = rotatedSurf.get_rect()
-        rotFruit.center = tuple(self.pos)
-        self.win.blit(rotatedSurf, rotFruit)
-
-    def physic(self):
-
-        gravity = 5
-
-        if self.time <= self.time_limit:
-            self.time += self.time_step
-            self.pos[0] = self.spos[0] + self.svelx * (self.time)
-            self.pos[1] = (
-                self.spos[1] + self.svely * (self.time) + (gravity * (self.time**2))
-            )
-
-        else:
-            self.destroy = True
-
-    def update(self):
-
-        self.angle = (self.angle + self.angle_speed) % 360
-        self.physic()
-        self.update_rect()
-        self.draw()
-
-    # private
-
-    def copy(self):
-        newfr = fruit(self.name, self.win, self.cut)
-        newfr.pos = self.pos
-        newfr.update_rect()
-
-        # physics configuration ---------------------------
-        newfr.time = self.time
-        newfr.time_step = self.time_step
-        newfr.spos = self.spos
-
-        newfr.s_angle = self.s_angle
-
-        newfr.speed = self.speed
-        newfr.svelx = self.svelx
-        newfr.svely = self.svely
-        newfr.angle = self.angle
-        return newfr
-
-
-def collision_handler(knf, frt):
-    # case 1
-    knife_angle = knf.angle
-    fruit_angle = frt.angle
-
-    topFruit = frt.copy()
-    topFruit.cut = True
-    topFruit.change_image(topFruit.name + "-2")
-
-    topFruit.svely = -0.3 * fps / 20 * abs(topFruit.svely)
-
-    botFruit = frt.copy()
-    botFruit.cut = True
-    botFruit.change_image(botFruit.name + "-1")
-
-    botFruit.svely = -0.3 * fps / 20 * abs(botFruit.svely)
-
-    shoot_angle = math.pi / 6
-    new_vx = abs((0.08 * yWin) * math.cos(shoot_angle))
-    if fruit_angle >= (2 * math.pi - math.pi / 2) and fruit_angle <= math.pi / 2:
-        topFruit.stop(shoot_angle)
-        topFruit.rotate(2 * math.pi - math.pi / 2)
-        botFruit.stop(math.pi - shoot_angle)
-        botFruit.rotate(math.pi / 2)
-
-        topFruit.svelx = -new_vx
-        botFruit.svelx = new_vx
-    else:
-        topFruit.stop(math.pi - math.pi / 18)
-        topFruit.rotate(2 * math.pi - math.pi / 2)
-        botFruit.stop(math.pi / 18)
-        botFruit.rotate(math.pi / 2)
-        topFruit.svelx = new_vx
-        botFruit.svelx = -new_vx
-
-    return topFruit, botFruit
-
-
-def coin_flip():
-    return random.randint(0, 1)
-
+pygame.display.set_icon(pygame.image.load(IMG_PATH + "icon.png"))
+pygame.display.set_caption("Fruit Ninja With Mediapipe Hands!")
 
 def game_loop():
 
-    # INITIAL SETTING
+    # INITIAL SETTINGS AND LOADING FONTS
     pygame.init()
     font = pygame.font.Font("./font/go3v2.ttf", 100)
     font_small = pygame.font.Font("./font/go3v2.ttf", 50)
-    clock = pygame.time.Clock()
 
+    # GET VIDEO CAPTURE FROM WEBCAM
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WINDOW_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, WINDOW_HEIGHT)
+
+    # GAME VARIABLES
     run = True
     exploding = False
-    explosion_alpha = 0
-    respawn_start = 0
 
-    win = pygame.display.set_mode(win_size)
+    # GAME WINDOW
+    win = pygame.display.set_mode(WINDOW_SIZE)
 
-    background = pygame.image.load(img_path + "background.png")
-    knf = knife(win)
+    # BACKGROUND IMAGE
+    background = pygame.image.load(BACKGROUND_PATH)
+    background_cv2 = cv2.imread(BACKGROUND_PATH)
+
+    # GLOBAL VARIABLES FOR GAME OBJECTS
+    knf = Knife(win)
     fruits = []
 
-    while True:
-        if exploding:
-            pygame.time.delay(fps)
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    run = False
-                    break
+    # Main loop
+    with mp_hands.Hands(
+        model_complexity=0,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5,
+        max_num_hands=1,
+    ) as hand:
 
-            # fade to white (explosion)
-            if explosion_alpha < 200:
-                explosion_alpha += 5
+        while cap.isOpened() and run:
+            # NEW ROUND
+            if not exploding:
+                # CREATE BOMBS AND FRUITS
+                throw_fruits(fruits, win)
+                add_bombs(fruits, win)
 
-            explosion = pygame.Surface([xWin, yWin], pygame.SRCALPHA, 32)
-            explosion = explosion.convert_alpha()
-            explosion.fill((255, 255, 255, explosion_alpha))
-            win.blit(explosion, (0, 0))
+                # ROUND START
+                while fruits != [] and run:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            run = False
 
-            lost_text = font.render("Você perdeu!", True, (255, 0, 0))
-            win.blit(
-                lost_text,
-                (
-                    xWin / 2 - lost_text.get_width() / 2,
-                    yWin / 2 - lost_text.get_height() / 2,
-                ),
-            )
+                        elif event.type == pygame.MOUSEBUTTONDOWN:
+                            knf.enable_cutting()
 
-            seconds = int((pygame.time.get_ticks() - respawn_start) / 1000)
-            if seconds > 5:
+                        elif event.type == pygame.MOUSEBUTTONUP:
+                            knf.disable_cutting()
+
+                    success, frame = cap.read()
+
+                    if not success:
+                        continue
+                    
+                    frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
+                    frame.flags.writeable = False
+                    results = hand.process(frame)
+
+                    finger_tip_pixel_coordinates = None
+
+                    # Draw the hand annotations on the image.
+                    background_with_hands = background_cv2.copy()
+                    if results.multi_hand_landmarks != None:
+                        for hand_landmarks in results.multi_hand_landmarks:
+                            finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+                            finger_tip_pixel_coordinates = mp_drawing._normalized_to_pixel_coordinates(finger_tip.x, finger_tip.y, WINDOW_WIDTH, WINDOW_HEIGHT)
+                            
+                            print(finger_tip_pixel_coordinates)
+
+                            mp_drawing.draw_landmarks(
+                                background_with_hands, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                            )
+
+                            if is_pointing_gesture(hand_landmarks):
+                                knf.enable_cutting()
+                            else:
+                                knf.disable_cutting()
+                    
+                    # Display the image.
+                    # image needs to be rotated in pygame
+                    background_with_hands = np.rot90(cv2.flip(background_with_hands, 1))
+                    
+                    # CV2 uses BGR colors and PyGame needs RGB
+                    background_with_hands = cv2.cvtColor(background_with_hands, cv2.COLOR_BGR2RGB)
+                    background_with_hands = cv2.resize(background_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT), interpolation=cv2.INTER_LINEAR)
+                    background_with_hands = pygame.surfarray.make_surface(background_with_hands)
+
+                    pygame.time.delay(FPS)
+                    
+                    win.blit(pygame.transform.scale(background_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT)), (0, 0))
+
+                    if finger_tip_pixel_coordinates != None:
+                        knf.update(finger_tip_pixel_coordinates)
+                    # knf.update(pygame.mouse.get_pos())
+
+                    for fr in fruits:
+                        fr.update()
+                        # IF FRUIT IS CUT AND KNIFE IS CUTTING
+                        if (
+                            pygame.sprite.collide_rect(knf, fr) == True
+                            and knf.sharp()
+                            and not fr.cut
+                        ):
+                            if fr.name == "bomb":
+                                fruits = []
+                                exploding = True
+                                break
+
+                            top, bot = collision_handler(fr)
+                            fruits.append(top)
+                            fruits.append(bot)
+                            fruits.remove(fr)
+                            knf.cut()
+
+                        if fr.destroy == True:
+                            fruits.remove(fr)
+
+                    pygame.display.flip()
+            # Game over
+            else:
+                try_again(win, font, font_small)
                 exploding = False
-                respawn_start = 0
-                explosion_alpha = 0
                 fruits = []
-                knf = knife(win)
-                continue
 
-            try_again = font_small.render(
-                "Tente novamente em {} segundos".format(5 - seconds), True, (0, 0, 0)
-            )
-            win.blit(
-                try_again,
-                (
-                    xWin / 2 - try_again.get_width() / 2,
-                    yWin / 2 - try_again.get_height() / 2 + 100,
-                ),
-            )
-
-            pygame.display.flip()
-
-        else:
-            num_fruits = random.randint(0, 3)
-            for _ in range(num_fruits + 1):
-                option = random.randint(0, len(fruit_list.items()) - 1)
-                fruits.append(fruit(fruit_list[option], win))
-
-            if coin_flip():
-                for _ in range(random.randint(1, 2)):
-                    fruits.append(fruit("bomb", win))
-
-            while fruits != [] and run:
-                pygame.time.delay(fps)
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        run = False
-                    elif event.type == pygame.MOUSEBUTTONDOWN:
-                        knf.enable_cutting()
-
-                    elif event.type == pygame.MOUSEBUTTONUP:
-                        knf.disable_cutting()
-
-                win.blit(pygame.transform.scale(background, (xWin, yWin)), (0, 0))
-                knf.update()
-
-                for fr in fruits:
-
-                    fr.update()
-
-                    if (
-                        pygame.sprite.collide_rect(knf, fr) == True
-                        and knf.sharp()
-                        and not fr.cut
-                    ):
-                        if fr.name == "bomb":
-                            fruits = []
-                            # exploding = True
-                            # respawn_start = pygame.time.get_ticks()
-                            break
-                        top, bot = collision_handler(knf, fr)
-                        fruits.append(top)
-                        fruits.append(bot)
-                        fruits.remove(fr)
-                        knf.cut()
-
-                    if fr.destroy == True:
-                        fruits.remove(fr)
-
-                pygame.display.flip()
-
-        if not run:
-            break
+            if not run:
+                cap.release()
+                pygame.quit()
+                break
 
 
-game_loop()
+if __name__ == "__main__":
+    game_loop()

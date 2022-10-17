@@ -113,6 +113,10 @@ def game_loop():
                                 WINDOW_WIDTH,
                                 WINDOW_HEIGHT
                             )
+                            if is_pointing_gesture(hand_landmarks):
+                                knf.enable_cutting()
+                            else:
+                                knf.disable_cutting()
 
                     bg_with_hands = cv2.cvtColor(bg_with_hands, cv2.COLOR_BGR2RGB)
                     bg_with_hands = cv2.flip(bg_with_hands, 1)

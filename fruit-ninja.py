@@ -90,10 +90,10 @@ def game_loop():
 
                     # TRATAMENTO DE IMG
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame = cv2.flip(frame, 1)
                     frame.flags.writeable = False
 
                     bg_with_hands = background_cv2.copy()
-
                     # APLICANDO O MODELO NA IMAGEM
                     results = hands.process(frame)
 
@@ -115,6 +115,7 @@ def game_loop():
                             )
 
                     bg_with_hands = cv2.cvtColor(bg_with_hands, cv2.COLOR_BGR2RGB)
+                    bg_with_hands = cv2.flip(bg_with_hands, 1)
                     bg_with_hands = cv2.resize(
                         bg_with_hands,
                         (WINDOW_WIDTH, WINDOW_HEIGHT),
@@ -135,7 +136,8 @@ def game_loop():
                     )
 
                     # UPDATE KNIFE POSITION
-                    knf.update(finger_coord)
+                    if finger_coord:
+                        knf.update(finger_coord)
 
                     # CHECK FOR KNIFE COLLISIONS AND UPDATE FRUITS
                     state = fruits_behavior(knf, fruits)

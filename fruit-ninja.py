@@ -102,6 +102,7 @@ def game_loop():
         if not run:
             pygame.quit()
             break
+    cap.release()
 
 
 if __name__ == "__main__":

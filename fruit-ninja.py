@@ -60,7 +60,7 @@ def game_loop():
         min_tracking_confidence=0.5,
         max_num_hands=1
     ) as hands:
-        while run:
+        while run and cap.isOpened():
             # NEW ROUND
             if not exploding:
                 # CREATE BOMBS AND FRUITS
@@ -80,6 +80,18 @@ def game_loop():
                             knf.disable_cutting()
 
                     pygame.time.delay(FPS)
+
+                    # LENDO IMAGEM DA CÂMERA
+                    success, frame = cap.read()
+                    if not success:
+                        continue
+
+                    # TRATAMENTO DE IMG
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    frame.flags.writeable = False
+
+                    # APLICANDO O MODELO NA IMAGEM
+                    results = hands(frame)
 
                     # DISPLAY BACKGROUND IMAGE
                     win.blit(

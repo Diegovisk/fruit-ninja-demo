@@ -90,13 +90,35 @@ def game_loop():
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                     frame.flags.writeable = False
 
+                    bg_with_hands = background_cv2.copy()
+
                     # APLICANDO O MODELO NA IMAGEM
-                    results = hands(frame)
+                    results = hands.process(frame)
+
+                    # Desenho das mãos encontradas
+                    if results.multi_hand_landmarks != None:
+                        for hand_landmarks in results.multi_hand_landmarks:
+                            mp_drawing.draw_landmarks(
+                                bg_with_hands,
+                                hand_landmarks,
+                                mp_hands.HAND_CONNECTIONS
+                            )
+
+                    bg_with_hands = cv2.cvtColor(bg_with_hands, cv2.COLOR_BGR2RGB)
+                    bg_with_hands = cv2.resize(
+                        bg_with_hands,
+                        (WINDOW_WIDTH, WINDOW_HEIGHT),
+                        interpolation=cv2.INTER_LINEAR
+                    )
+                    bg_with_hands = pygame.surfarray.make_surface(
+                        bg_with_hands
+                    )
+
 
                     # DISPLAY BACKGROUND IMAGE
                     win.blit(
                         pygame.transform.scale(
-                            background, (WINDOW_WIDTH, WINDOW_HEIGHT)
+                            bg_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT)
                         ),
                         (0, 0),
                     )

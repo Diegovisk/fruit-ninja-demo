@@ -11,7 +11,15 @@ from models.Knife import Knife
 from utils.add_bombs import add_bombs
 from utils.coin_flip import coin_flip
 from utils.collision_handler import collision_handler
-from utils.configs import BACKGROUND_PATH, FPS, FRUIT_LIST, IMG_PATH, WINDOW_HEIGHT, WINDOW_SIZE, WINDOW_WIDTH
+from utils.configs import (
+    BACKGROUND_PATH,
+    FPS,
+    FRUIT_LIST,
+    IMG_PATH,
+    WINDOW_HEIGHT,
+    WINDOW_SIZE,
+    WINDOW_WIDTH,
+)
 from utils.is_pointing_finger import is_pointing_gesture
 from utils.throw_fruits import throw_fruits
 
@@ -21,6 +29,7 @@ mp_hands = mp.solutions.hands
 
 pygame.display.set_icon(pygame.image.load(IMG_PATH + "icon.png"))
 pygame.display.set_caption("Fruit Ninja With Mediapipe Hands!")
+
 
 def game_loop():
 
@@ -80,7 +89,7 @@ def game_loop():
 
                     if not success:
                         continue
-                    
+
                     frame = cv2.cvtColor(cv2.flip(frame, 1), cv2.COLOR_BGR2RGB)
                     frame.flags.writeable = False
                     results = hand.process(frame)
@@ -91,32 +100,56 @@ def game_loop():
                     background_with_hands = background_cv2.copy()
                     if results.multi_hand_landmarks != None:
                         for hand_landmarks in results.multi_hand_landmarks:
-                            finger_tip = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-                            finger_tip_pixel_coordinates = mp_drawing._normalized_to_pixel_coordinates(finger_tip.x, finger_tip.y, WINDOW_WIDTH, WINDOW_HEIGHT)
-                            
+                            finger_tip = hand_landmarks.landmark[
+                                mp_hands.HandLandmark.INDEX_FINGER_TIP
+                            ]
+                            finger_tip_pixel_coordinates = (
+                                mp_drawing._normalized_to_pixel_coordinates(
+                                    finger_tip.x,
+                                    finger_tip.y,
+                                    WINDOW_WIDTH,
+                                    WINDOW_HEIGHT,
+                                )
+                            )
+
                             print(finger_tip_pixel_coordinates)
 
                             mp_drawing.draw_landmarks(
-                                background_with_hands, hand_landmarks, mp_hands.HAND_CONNECTIONS
+                                background_with_hands,
+                                hand_landmarks,
+                                mp_hands.HAND_CONNECTIONS,
                             )
 
                             if is_pointing_gesture(hand_landmarks):
                                 knf.enable_cutting()
                             else:
                                 knf.disable_cutting()
-                    
+
                     # Display the image.
                     # image needs to be rotated in pygame
                     background_with_hands = np.rot90(cv2.flip(background_with_hands, 1))
-                    
+
                     # CV2 uses BGR colors and PyGame needs RGB
-                    background_with_hands = cv2.cvtColor(background_with_hands, cv2.COLOR_BGR2RGB)
-                    background_with_hands = cv2.resize(background_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT), interpolation=cv2.INTER_LINEAR)
-                    background_with_hands = pygame.surfarray.make_surface(background_with_hands)
+                    background_with_hands = cv2.cvtColor(
+                        background_with_hands, cv2.COLOR_BGR2RGB
+                    )
+                    background_with_hands = cv2.resize(
+                        background_with_hands,
+                        (WINDOW_WIDTH, WINDOW_HEIGHT),
+                        interpolation=cv2.INTER_LINEAR,
+                    )
+                    background_with_hands = pygame.surfarray.make_surface(
+                        background_with_hands
+                    )
 
                     pygame.time.delay(FPS)
-                    
-                    win.blit(pygame.transform.scale(background_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT)), (0, 0))
+
+                    win.blit(
+                        pygame.transform.scale(
+                            background_with_hands, (WINDOW_WIDTH, WINDOW_HEIGHT)
+                        ),
+                        (0, 0),
+                    )
 
                     if finger_tip_pixel_coordinates != None:
                         knf.update(finger_tip_pixel_coordinates)

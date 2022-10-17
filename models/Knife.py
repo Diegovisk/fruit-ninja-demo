@@ -6,6 +6,7 @@ from utils.configs import IMG_PATH
 
 max_tail_size = 5
 
+
 class Knife:
     def __init__(self, win):
         self.pos = pygame.mouse.get_pos()
@@ -101,7 +102,7 @@ class Knife:
         # print(self.angle*180/math.pi)
         self.draw()
 
-    def cut(self, pos = None):
+    def cut(self, pos=None):
         rotatedFlash = pygame.transform.rotate(self.flash, self.angle * 180 / math.pi)
         rotflash = rotatedFlash.get_rect()
         if pos != None:

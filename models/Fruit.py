@@ -35,7 +35,9 @@ class Fruit:
         else:
             self.s_angle = random.uniform(4 * math.pi / 9, math.pi / 2)
 
-        self.speed = random.randint(int(0.14 * WINDOW_HEIGHT), int(0.16 * WINDOW_HEIGHT))
+        self.speed = random.randint(
+            int(0.14 * WINDOW_HEIGHT), int(0.16 * WINDOW_HEIGHT)
+        )
         self.svelx = self.speed * math.cos(self.s_angle)
         self.svely = -self.speed * math.sin(self.s_angle)
 
